@@ -27,7 +27,7 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
-dev = [{ name = "honest-agent", editable = "../agent_quiz/cli" }]
+dev = [{ name = "honest-agent", git = "https://github.com/jlcoto/the_honest_agent.git?subdirectory=cli&tag=v0.4.0" }]
 
 [[package]]
 name = "annotated-types"
@@ -232,7 +232,7 @@ wheels = [
 [[package]]
 name = "honest-agent"
 version = "0.4.0"
-source = { editable = "../agent_quiz/cli" }
+source = { git = "https://github.com/jlcoto/the_honest_agent.git?subdirectory=cli&tag=v0.4.0#5a577de72088b24173e010abb5bbdda9d2c1fb38" }
 dependencies = [
     { name = "anthropic" },
     { name = "click" },
@@ -243,21 +243,6 @@ dependencies = [
     { name = "pyyaml" },
     { name = "sqlglot" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "anthropic", specifier = ">=1.5,<2" },
-    { name = "click", specifier = ">=8.5,<9" },
-    { name = "duckdb", specifier = ">=1.5,<2" },
-    { name = "mcp", specifier = ">=2.2,<3" },
-    { name = "openai", specifier = ">=3.23,<4" },
-    { name = "pytest", marker = "extra == 'test'", specifier = ">=9.1,<10" },
-    { name = "python-dotenv", specifier = ">=1.2,<2" },
-    { name = "pyyaml", specifier = ">=6.0,<7" },
-    { name = "ruff", marker = "extra == 'lint'", specifier = ">=0.16.7,<0.17" },
-    { name = "sqlglot", specifier = ">=30.21,<31" },
-]
-provides-extras = ["test", "lint"]
 
 [[package]]
 name = "httpcore2"

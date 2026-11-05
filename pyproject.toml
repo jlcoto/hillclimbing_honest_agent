@@ -16,4 +16,4 @@ dev = [
 ]
 
 [tool.uv.sources]
-honest-agent = { path = "../agent_quiz/cli", editable = true }
+honest-agent = { git = "https://github.com/jlcoto/the_honest_agent.git", tag = "v0.4.0", subdirectory = "cli" }
