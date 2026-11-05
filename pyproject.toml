@@ -1,0 +1,19 @@
+[project]
+name = "agent-climb"
+version = "0.1.0"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    # dbt 2.0 (release candidate; jaffle-shop requires >=2.0). It bundles its own
+    # DuckDB support, so no dbt-duckdb adapter. dbt-metricflow doesn't support
+    # dbt 2.0 yet (dbt-core <1.13), so MetricFlow isn't installed here.
+    "dbt-core==2.0.0rc9",
+    "duckdb==1.5.6",
+]
+
+[dependency-groups]
+dev = [
+    "honest-agent",
+]
+
+[tool.uv.sources]
+honest-agent = { path = "../agent_quiz/cli", editable = true }

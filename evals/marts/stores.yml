@@ -1,0 +1,147 @@
+version: 1
+
+# R2 on: the dbt marts. Same questions and gold answers as evals/raw/; only
+# expected_sources differ. scripts/check_evals_sync.py checks that.
+
+evals:
+  - category: stores
+    grading:
+      method: llm_judge   # the answer is a ranked list of names
+    tests:
+      # Gold: gold/01_top_stores_last_quarter.sql on the dbt marts, 2026-10-19.
+      # "Last quarter" = Q2 2026, the last complete calendar quarter in the data (the data
+      # ends 2026-08-31). Revenue = pre-tax subtotal. Q3 to date (July-August), a rolling
+      # 3 months and revenue with tax give the same top 3 in the same order, but other
+      # amounts. Dating from today (October 2026) gives Q3 2026, which has only July-August.
+      - id: top_stores_last_quarter
+        title: Top 3 stores by revenue last quarter
+        prompt: Give me the top 3 stores with highest revenue in the last quarter and their revenue
+        expected_answer: >
+          Exactly these 3 stores, in this order, with their revenue for Q2 2026 (April
+          to June), before tax: Brooklyn 326718.00, Chicago 271969.00, San Francisco
+          237440.00. Rounded amounts are fine (within 1%, e.g. $326.7K).
+        provenance:
+          expected_sources: [orders, locations]
+
+      # Gold: gold/02_biggest_store_decrease_last_month.sql on the dbt marts, 2026-10-19.
+      # "Last month" = July 2026, compared with June 2026. Revenue = pre-tax subtotal.
+      # Decrease in dollars: Brooklyn 101423.00 -> 87511.00 (-13912.00, -13.7%); in
+      # percent: Chicago 85165.00 -> 72169.00 (-12996.00, -15.3%). August vs July: only
+      # San Francisco dropped (-184.00, -0.3%). Dating from today (October 2026) gives
+      # September, which has no data.
+      - id: biggest_store_decrease_last_month
+        title: Store with the biggest revenue decrease last month
+        prompt: Which store has the biggest revenue decrease last month
+        expected_answer: >
+          Brooklyn: its revenue fell from about 101,423 in June 2026 to about 87,511 in
+          July 2026, a drop of about 13,912 (13.7%), before tax. Amounts aren't
+          required, but any given must match within 1%.
+        provenance:
+          expected_sources: [orders, locations]
+
+      # Gold: gold/12_avg_order_value_by_store_last_year.sql on the dbt marts, 2026-10-19.
+      # 2025, pre-tax subtotal, all orders. 2045 orders in 2025 have no items and $0;
+      # leaving them out gives 10.88 / 10.88 / 10.12 / 10.45, which is also what averaging
+      # order_items_subtotal (NULL on those orders) gives without noticing. With tax:
+      # 11.22 / 11.47 / 10.65 / 11.15.
+      - id: avg_order_value_by_store_last_year
+        title: Average order value by store last year
+        prompt: what was the average order price by store last year?
+        tags: [holdout]
+        expected_answer: >
+          Average order value in 2025, before tax, over all orders: Brooklyn 10.79,
+          Chicago 10.80, Philadelphia 10.05, San Francisco 10.38, each within 0.02. Also
+          correct: Brooklyn 10.88, Chicago 10.88, Philadelphia 10.12, San Francisco
+          10.45, but only if the answer says it left out the orders with no items or a
+          $0 value; the same figures without saying so are wrong. New Orleans and Los
+          Angeles may be left out or reported as having no 2025 orders.
+        provenance:
+          expected_sources: [orders, locations]
+
+      # Gold: gold/13_avg_products_per_order_by_store.sql on the dbt marts, 2026-10-20.
+      # All time. Products = units per order (two of the same product count 2). The 5030
+      # orders with no items are left out (count_order_items is NULL on them); counting
+      # them as 0 gives about 0.01 less per store, within tolerance. Distinct products per
+      # order: 1.44 / 1.45 / 1.44 / 1.41 / 1.38.
+      - id: avg_products_per_order_by_store
+        title: Average number of products per order by store
+        prompt: Average number of products per ticket and store
+        tags: [holdout]
+        expected_answer: >
+          Average number of products (units) per order, all time: New Orleans 1.54,
+          Chicago 1.53, Brooklyn 1.52, San Francisco 1.48, Philadelphia 1.44, each
+          within 0.02. Counting or leaving out the orders with no items are both fine.
+          Los Angeles may be left out.
+        provenance:
+          expected_sources: [orders, locations]
+
+      # Gold: gold/21_highest_margin_store.sql on the dbt marts, 2026-10-20. Profit margin =
+      # (revenue - supply cost) / revenue, all time, pre-tax: New Orleans 79.35,
+      # Philadelphia 79.33, San Francisco 79.31, Brooklyn 79.29, Chicago 79.28. Same
+      # products and prices everywhere; only the product mix differs. Profit in dollars:
+      # Brooklyn 2185942.81. Partial credit is capped at 0.5 so it stays below min_score.
+      - id: highest_margin_store
+        title: Store with the highest profit margin
+        prompt: Which store has the highest profit margin of all?
+        expected_answer: >
+          Full credit (1.0): New Orleans, with a profit margin of about 79.35% before
+          tax, AND the answer says that all stores are very close (about 79.28% to
+          79.35%, within about 0.1 percentage points), so the difference is negligible.
+          Partial credit, at most 0.5: New Orleans without saying the stores are
+          practically tied. Margins given must match within 0.05 points.
+        provenance:
+          expected_sources: [orders, locations]
+
+      # Gold: gold/28_store_most_tax_last_year.sql on the dbt marts, 2026-10-20. Last year =
+      # 2025: Brooklyn 50557.08, Philadelphia 44335.36, Chicago 26921.93, San Francisco
+      # 26801.92. Brooklyn has the lowest tax rate (4%) but the most revenue; reasoning from
+      # tax_rate gives San Francisco (7.5%). Was contains until 2026-11-01: it passed an
+      # answer that named Brooklyn with tax in cents (5,055,708) and only said in a caveat
+      # that it might be cents. Now llm_judge: amounts must be right, a cents caveat
+      # doesn't save a wrong headline figure.
+      - id: store_most_tax_last_year
+        title: Store that paid the most tax last year
+        prompt: Which store paid the most tax last year?
+        expected_answer: >
+          Brooklyn, with 50557.08 dollars of tax in 2025 (Philadelphia second, 44335.36).
+          Amounts aren't required, but if the answer gives any, they must match within
+          1%; an amount outside that range makes the answer wrong, even if the answer
+          adds that the figures might be in cents.
+        grading:
+          method: llm_judge
+        provenance:
+          expected_sources: [orders, locations]
+
+      # Gold: gold/31_best_second_30_days_after_opening.sql on the dbt marts, 2026-10-20.
+      # Days 31 to 60 after opening, pre-tax: Brooklyn 38605.00, Chicago 32163.00, San
+      # Francisco 25191.00, New Orleans 24595.00, Philadelphia 22510.00. Month 2 from the
+      # opening date (38683.00) and the second calendar month (38447.00) also give Brooklyn.
+      # Was contains until 2026-11-01: it passed an answer that named Brooklyn with revenue
+      # in cents and with tax (4,014,911 from order_total), only saying in a caveat that it
+      # might be cents. Now llm_judge: amounts must be pre-tax and right.
+      - id: best_second_30_days_after_opening
+        title: Store with the highest revenue in days 31 to 60 after opening
+        prompt: Which store had the highest revenue in its second 30 days after opening (days 31 to 60)?
+        expected_answer: >
+          Brooklyn, with 38605.00 dollars of revenue before tax in days 31 to 60 after
+          opening (Chicago second, 32163.00). Amounts aren't required, but if the answer
+          gives any, they must be before tax and match within 1%; an amount outside that
+          range makes the answer wrong, even if the answer adds that the figures might be
+          in cents.
+        grading:
+          method: llm_judge
+        provenance:
+          expected_sources: [orders, locations]
+
+      # Gold: gold/34_new_orleans_took_customers.sql on the dbt marts, 2026-10-20. New
+      # Orleans' 284 customers never ordered at another store, before or after it opened
+      # (every customer orders from one store only). Written by Claude at Jose's request.
+      - id: new_orleans_took_customers
+        title: Whether opening New Orleans took customers from other stores
+        prompt: Did opening New Orleans take customers away from our other stores?
+        expected_answer: >
+          No: no New Orleans customer has ordered at any other store, before or after
+          it opened (2026-03-10), so it didn't take customers from the other stores.
+          The number of customers isn't required.
+        provenance:
+          expected_sources: [orders, locations]

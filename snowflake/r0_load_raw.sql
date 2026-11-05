@@ -69,6 +69,11 @@ copy into climb.raw.raw_products from @climb.raw.jaffle_files pattern = '.*raw_p
 copy into climb.raw.raw_stores from @climb.raw.jaffle_files pattern = '.*raw_stores\\.csv(\\.gz)?';
 copy into climb.raw.raw_supplies from @climb.raw.jaffle_files pattern = '.*raw_supplies\\.csv(\\.gz)?';
 
+-- Shift the dates 1827 days (261 weeks) forward, as scripts/load_local.sql does: the
+-- data then runs 2023-09-02 to 2026-08-31, with each date keeping its weekday.
+update climb.raw.raw_orders set ordered_at = dateadd(day, 1827, ordered_at);
+update climb.raw.raw_stores set opened_at = dateadd(day, 1827, opened_at);
+
 -- The stage only holds the upload; drop it so the agent can't list or read the files.
 drop stage climb.raw.jaffle_files;
 drop file format climb.raw.csv_header;

@@ -1,0 +1,87 @@
+version: 1
+
+# R0/R1: the raw tables. Same questions and gold answers as evals/marts/; only
+# expected_sources differ. scripts/check_evals_sync.py checks that.
+
+evals:
+  - category: customers
+    grading:
+      method: extract_match
+    tests:
+      # Gold: gold/09_customers_returned_this_year.sql on the dbt marts, 2026-10-19.
+      # Customers who ordered in 2025 (2140) and also ordered in 2026: 2139. Other
+      # readings: 1043 (first order in 2025, all returned), 2581 (customer_type =
+      # 'returning', a lifetime label). Asked as a count because as percentages these
+      # are within 0.2 points (99.95%, 100%, 99.81%).
+      - id: customers_returned_this_year
+        title: Number of last year's customers who returned this year
+        prompt: how many customers from last year have returned this year
+        tags: [holdout]
+        expected_answer: "2139"
+        provenance:
+          expected_sources: [raw_orders]
+
+      # Gold: gold/10_customers_returned_this_year_per_location.sql on the dbt marts,
+      # 2026-10-19. 2025 customers per store and how many ordered again in 2026:
+      # Brooklyn 700/701, Chicago 521/521, Philadelphia 449/449, San Francisco 469/469.
+      # New Orleans opened 2026-03-10 (no 2025 customers); Los Angeles has no orders.
+      # Every customer orders from one store only.
+      - id: customers_returned_this_year_per_location
+        title: Share of last year's customers who returned this year, per store
+        prompt: Share of last year's customers who returned this year per location
+        tags: [holdout]
+        expected_answer: >
+          One share per store: Brooklyn 99.86% (700 of 701; 99.9% is fine), Chicago
+          100%, Philadelphia 100%, San Francisco 100%. New Orleans must be reported as
+          not applicable, because it opened in 2026 and had no customers last year. Los
+          Angeles may be left out or reported as having no customers.
+        grading:
+          method: llm_judge
+        provenance:
+          expected_sources: [raw_orders, raw_stores]
+
+      # Gold: gold/11_last_month_customers_bought_this_month.sql on the dbt marts,
+      # 2026-10-19. This month = August 2026, last month = July 2026 (the data ends
+      # 2026-08-31). 2049 of July's 2054 customers bought in August (99.76%). Wrong
+      # readings: 2073 (all August customers), 24 (August customers new since July),
+      # 2021 (June and July), 0 (counting from today: September and October).
+      - id: last_month_customers_bought_this_month
+        title: Last month's customers who bought this month
+        prompt: How many of our last month customers have made a purchase this month
+        expected_answer: "2049"
+        provenance:
+          expected_sources: [raw_orders]
+
+      # Gold: gold/22_new_customers_last_month_yoy.sql on the dbt marts, 2026-10-20.
+      # Users = customers, acquired = month of first order. Last month = July 2026: 30 new
+      # customers; July 2025: 112 (-73.2%). Wrong readings: August 24 vs 97 (-75.3%), year
+      # to date Jan-Aug 446 vs 701 (-36.4%), customer_type = 'new' (5, a lifetime label),
+      # 0 from counting back from today (September 2026). On the marts, computing first
+      # orders from orders instead of customers.first_ordered_at fails provenance.
+      - id: new_customers_last_month_yoy
+        title: New customers last month and year-over-year growth
+        prompt: How many users did we acquire last month? What is our yoy growth in user acquisition?
+        tags: [time]
+        expected_answer: >
+          30 new customers in July 2026 (customers whose first order was that month),
+          compared with 112 in July 2025: a decrease of about 73.2% year over year. The
+          count must be exact; the percentage within 0.5 points.
+        grading:
+          method: llm_judge
+        provenance:
+          expected_sources: [raw_orders]
+
+      # Gold: gold/23_customers_multiple_locations.sql on the dbt marts, 2026-10-20. Every
+      # customer has ordered from exactly one store: 0 of 2586. The customers mart has no
+      # location column, so there is no shortcut.
+      - id: customers_multiple_locations
+        title: Share of customers who ordered from more than one store
+        prompt: What's the percentage of customers that have gone to more than one location?
+        expected_answer: >
+          0%: none of the 2586 customers has ordered from more than one store; every
+          customer orders from a single location. Noting that this is unusual or may
+          be a quirk of the data is fine.
+        grading:
+          method: llm_judge
+        provenance:
+          expected_sources: [raw_orders]

@@ -26,4 +26,10 @@ Left out: `raw_tweets.csv`, which jafgen also writes but the
 | raw_stores.csv.gz | 6 |
 | raw_supplies.csv.gz | 65 |
 
-Orders run from 2018-09-01 to 2021-08-30. Amounts are in cents.
+Orders run from 2018-09-01 to 2021-08-30 in these files. Amounts are in cents.
+
+The load scripts (`scripts/load_local.sql`, `snowflake/r0_load_raw.sql`) shift
+`raw_orders.ordered_at` and `raw_stores.opened_at` 1827 days (261 weeks) forward, so
+in the warehouse the orders run from 2023-09-02 to 2026-08-31. A whole number of weeks
+keeps each date's weekday, which matters: orders drop by about two thirds on weekends.
+Those are the only date columns.

@@ -1,0 +1,10 @@
+# Local DuckDB target for jaffle-shop. Run dbt from dbt/jaffle-shop with
+#   uv run --project ../.. dbt build --profiles-dir ..
+default:
+  target: local
+  outputs:
+    local:
+      type: duckdb
+      path: ../../warehouse/climb.duckdb
+      schema: main
+      threads: 4

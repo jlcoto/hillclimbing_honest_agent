@@ -1,0 +1,206 @@
+version: 1
+
+# R2 on: the dbt marts. Same questions and gold answers as evals/raw/; only
+# expected_sources differ. scripts/check_evals_sync.py checks that.
+
+evals:
+  - category: products
+    grading:
+      method: llm_judge
+    tests:
+      # Gold: gold/03_highest_demand_product.sql on the dbt marts, 2026-10-19.
+      # "Currently" has no single reading, so the agent should ask, or state its window
+      # and give the right product for it. Demand = units sold (order items). The top
+      # five drinks are within a few percent of each other in every window, so the
+      # winner changes with the window. Units: last 28 days chai and mighty 6702,
+      # adele-ade 6629; last 90 days adele-ade 21500, chai and mighty 21479.
+      # No expected_sources: an agent that asks first may run no SQL, which is right.
+      - id: highest_demand_product_now
+        title: Product with the highest demand currently
+        prompt: what is currently the product with the highest demand
+        tags: [time, ambiguous]
+        expected_answer: >
+          Correct if the answer either (a) asks the user what period "currently" means,
+          or (b) states the period it used, counting back from 2026-08-31 (the last day
+          of data), and names the top product by units sold for that period: last 7
+          days: for richer or pourover; last 28 or 30 days, August 2026, or June to
+          August: chai and mighty; last 90 days: adele-ade. All of the data doesn't
+          count as "currently", even if the answer states it.
+
+      # Gold: gold/04_highest_demand_product_all_time.sql on the dbt marts, 2026-10-19.
+      # No period = all of the data; demand = units sold. tangaroo 151624, chai and
+      # mighty 151284 (a 0.2% lead). By revenue it's for richer or pourover (1058463.00).
+      # contains passes any answer that mentions tangaroo, even in a list.
+      - id: highest_demand_product
+        title: Product with the highest demand
+        prompt: what is the product with the highest demand
+        expected_answer: tangaroo
+        grading:
+          method: contains
+        provenance:
+          expected_sources: [order_items]
+
+      # Gold: gold/05_doctor_stew_chicago_last_28_days.sql on the dbt marts, 2026-10-19.
+      # Last 28 days of data = Aug 4-31 2026; sold = units. Wrong readings: 367 (orders
+      # with a doctor stew), 422 (29 days, an off-by-one window), 446 (30 days), 464
+      # (August). Until 2026-11-01 the expected answer was 409 and 0 counted as wrong.
+      # Calibrated 2026-11-01: the data ends 2026-08-31, so from today the window is empty.
+      # Accepted: asking which 28 days are meant, 0 with a warning that the data ends in
+      # August, or 409 for the last 28 days of data (Aug 4-31) with that window stated.
+      # llm_judge, since a number alone can't tell those apart.
+      - id: doctor_stew_chicago_last_28_days
+        title: Doctor stew sold in Chicago in the last 28 days
+        prompt: how many doctor stew were sold in Chicago in the last 28 days?
+        expected_answer: >
+          The order data ends on 31 August 2026, so counting back from today nothing was
+          sold in the last 28 days. Three answers are correct: (a) the agent points out
+          that the data stops at the end of August and asks which 28 days are meant;
+          (b) it answers 0 and warns that the data only goes up to the end of August; or
+          (c) it says the data ends in August and answers 409 for the last 28 days of
+          data, 4 to 31 August 2026, stating that window. Answering 0 without the warning
+          is wrong, and so is any other number, or 409 without saying which 28 days it
+          covers.
+        grading:
+          method: llm_judge
+        provenance:
+          expected_sources: [order_items, orders, locations]
+
+      # Gold: gold/06_highest_yoy_growth_july.sql on the dbt marts, 2026-10-19.
+      # July 2026 vs July 2025, units sold. Prices never change, so revenue growth in
+      # percent is the same; for richer or pourover also has the biggest absolute gain
+      # (+2785 units, +19495.00). Runner-up: doctor stew +59.2%. July 2025 vs July 2024
+      # gives flame impala (+116.2%).
+      - id: highest_yoy_growth_july
+        title: Product with the highest year-over-year growth in July
+        prompt: what is the product that has the highest year over year growth for the month of july
+        expected_answer: >
+          for richer or pourover, comparing July 2026 with July 2025: units sold grew
+          about 61.6%, from 4522 to 7307. Growth measured in revenue gives the same
+          product and percentage. Amounts aren't required, but any given must match
+          within 1%.
+        provenance:
+          expected_sources: [order_items]
+
+      # Gold: gold/14_highest_margin_product_revenue_share.sql on the dbt marts, 2026-10-20.
+      # Profit margin = (price - cost) / price, cost = the sum of all of a product's
+      # supplies. Prices and costs never change, so any period gives the same margins.
+      # Runner-up: for richer or pourover 88.3%. Profit per unit: flame impala 10.57;
+      # total profit: for richer or pourover 934471.62. Shares are of all-time pre-tax
+      # revenue; flame impala's would be 8.78 to 9.46%, pourover's 14.89 to 15.63%.
+      # Amount ranges (2026-11-01) catch units errors (cents as dollars): product revenue
+      # per store is 12078.00 (New Orleans) to 205348.00 (Brooklyn), store revenue
+      # 166779.00 to 2756957.00; x100 or /100 falls outside the ranges.
+      - id: highest_margin_product_revenue_share
+        title: Product with the highest profit margin and its share of each store's revenue
+        prompt: What is the product with the highest profit margin, and what percentage of each store's revenue does it represent?
+        expected_answer: >
+          nutellaphone who dis?, with a profit margin of about 89.0% (price 11.00,
+          supply cost 1.21). Its share of each store's revenue, all time, before tax:
+          Brooklyn 7.45%, Chicago 7.27%, New Orleans 7.24%, Philadelphia 6.97%, San
+          Francisco 6.98%, each within 0.05 percentage points. Los Angeles may be left
+          out, or shown with no sales. Amounts aren't required, but if the answer gives
+          any, the product's revenue per store must be between 10,000 and 250,000 dollars
+          and each store's revenue between 150,000 and 3,000,000 dollars; an amount
+          outside those ranges makes the answer wrong.
+        provenance:
+          expected_sources: [order_items, orders, locations]
+
+      # Gold: gold/18_avg_revenue_by_order_type.sql on the dbt marts, 2026-10-20. Per order,
+      # all time, pre-tax. Orders: both 144190, food only 12913, drinks only 502268; the 5030
+      # empty orders are in no group. With tax: 27.11 / 21.79 / 6.32. Per customer (the
+      # reading the prompt avoids): both 3031.54, drinks only 2110.83, no food-only customers.
+      - id: avg_revenue_by_order_type
+        title: Average revenue of orders with only food, only drinks, or both
+        prompt: What is the average revenue of orders with only food, only drinks, or both?
+        tags: [holdout]
+        expected_answer: >
+          Average revenue per order, all time, before tax: orders with both food and
+          drinks 25.73, only food 20.68, only drinks 5.99, each within 0.02. Listing the
+          orders with no items separately (at 0) or leaving them out are both fine.
+        provenance:
+          expected_sources: [orders]
+
+      # Gold: gold/20_food_order_share_this_year_vs_last.sql on the dbt marts, 2026-10-20.
+      # Like for like: January to August, because 2026 data ends 2026-08-31. Share of orders
+      # with food: 23.21% (34197 of 147350) in 2025, 23.68% (63085 of 266427) in 2026.
+      # Full year 2025 (23.81%) against 2026 to date gives a decrease: the trap. Leaving out
+      # the empty orders: 23.40% -> 23.85% (Jan-Aug), 24.00% -> 23.85% (full year).
+      - id: food_order_share_this_year_vs_last
+        title: Change in the share of orders with food, this year vs last year
+        prompt: Has the share of orders that include food increased this year compared to last year?
+        tags: [time]
+        expected_answer: >
+          Yes, it increased, comparing the same months in both years: January to August
+          (2026 data ends on 2026-08-31). The share of orders that include food rose
+          from about 23.21% in 2025 to about 23.68% in 2026, about 0.47 percentage
+          points. Figures leaving out the orders with no items (23.40% to 23.85%) are
+          also fine. Shares aren't required, but any given must match within 0.05
+          points.
+        provenance:
+          expected_sources: [orders]
+
+      # Gold: gold/24_most_popular_product_new_customers.sql on the dbt marts, 2026-10-20.
+      # New clients = first order in the last 3 months of data (June to August 2026): 93
+      # customers. Popular = units: for richer or pourover 576, chai and mighty 545,
+      # vanilla ice 544. Only this reading counts; a guide will define new clients later.
+      # Other readings: first order only gives vanilla ice (31); most buyers gives
+      # tangaroo (87). On the marts, customers is expected: the mart holds the shared
+      # definition of a customer's first order, so recomputing it from orders bypasses it.
+      - id: most_popular_product_new_customers
+        title: Most popular product with new customers
+        prompt: What is the most popular product with the new clients?
+        tags: [time, ambiguous]
+        expected_answer: >
+          for richer or pourover: 576 units bought by the 93 customers whose first
+          order was between June and August 2026 (the last 3 months of data). Units
+          aren't required, but any given must match within 1%.
+        provenance:
+          expected_sources: [customers, orders, order_items]
+
+      # Gold: gold/25_most_popular_product_old_customers.sql on the dbt marts, 2026-10-20.
+      # Old clients = first order before 2025-09-01, more than a year before the data ends:
+      # 1798 customers. Units in June to August 2026: adele-ade 15902, tangaroo 15891,
+      # chai and mighty 15834, for richer or pourover 15830, vanilla ice 15742. Only this
+      # reading counts; a guide will define old clients later. All time gives tangaroo
+      # (133991 vs 133615). Partial credit is capped at 0.5 so it stays below min_score.
+      - id: most_popular_product_old_customers
+        title: Most popular product with old customers in the last 3 months
+        prompt: What is the most popular product with old clients in the last 3 months?
+        tags: [time, ambiguous, holdout]
+        expected_answer: >
+          Full credit (1.0): adele-ade with exactly 15902 units bought from June to
+          August 2026 by the 1798 customers whose first order was more than a year
+          before the end of the data (before 2025-09-01). Any other units given must
+          be exact. Partial credit, at most 0.5: adele-ade without its exact units.
+        provenance:
+          expected_sources: [customers, orders, order_items]
+
+      # Gold: gold/29_most_expensive_product_to_make.sql on the dbt marts, 2026-10-20. Cost
+      # to make = sum of a product's supplies per unit: the krautback 3.66, flame impala
+      # 3.43. Other readings: total supply cost over sales gives chai and mighty; most
+      # supplies ties the krautback and flame impala (9); highest price is flame impala.
+      # On the marts, supplies holds the cost definition; order_items.supply_cost is
+      # derived from it, so answering from order_items alone fails provenance.
+      - id: most_expensive_product_to_make
+        title: Product that is most expensive to make
+        prompt: Which product is most expensive to make?
+        tags: [holdout]
+        expected_answer: krautback
+        grading:
+          method: contains
+        provenance:
+          expected_sources: [supplies, products]
+
+      # Gold: gold/32_pct_revenue_from_drinks.sql on the dbt marts, 2026-10-20. All time,
+      # pre-tax: drink items' revenue (4233237.00) over all items' revenue (6986981.00).
+      # Share of units instead: 76.71%. Tolerance 0.1: "about 61%" fails on purpose.
+      # Written by Claude at Jose's request.
+      - id: pct_revenue_from_drinks
+        title: Share of revenue from drinks
+        prompt: What percentage of our revenue comes from drinks?
+        expected_answer: "60.59"
+        grading:
+          method: extract_match
+          tolerance: 0.1
+        provenance:
+          expected_sources: [order_items]

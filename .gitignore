@@ -1,2 +1,14 @@
 .env
 data/raw/*.csv
+dbt/jaffle-shop/
+warehouse/
+.venv/
+
+# honest-agent
+honest_agent_report/
+
+# dbt and Python artifacts
+dbt/logs/
+dbt/.user.yml
+__pycache__/
+jaffle_raw.raw

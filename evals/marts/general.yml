@@ -1,0 +1,149 @@
+version: 1
+
+# R2 on: the dbt marts. Same questions and gold answers as evals/raw/; only
+# expected_sources differ. scripts/check_evals_sync.py checks that.
+
+evals:
+  - category: general
+    grading:
+      method: extract_match   # one number, exact
+    tests:
+      # Gold: gold/07_customer_count.sql on the dbt marts, 2026-10-19. Counting distinct
+      # names gives 2545: some customers share a name.
+      - id: customer_count
+        title: Number of customers
+        prompt: How many customers do we have?
+        expected_answer: "2586"
+        provenance:
+          expected_sources: [customers]
+
+      # Gold: gold/08_items_sold.sql on the dbt marts, 2026-10-19. Counting orders instead
+      # gives 664401.
+      - id: items_sold
+        title: Number of items sold
+        prompt: How many items have we sold?
+        tags: [holdout]
+        expected_answer: "985497"
+        provenance:
+          expected_sources: [order_items]
+
+      # Gold: gold/15_active_stores.sql on the dbt marts, 2026-10-20. Active = at least one
+      # order (all 5 also had orders in August 2026). Counting locations gives 6, and so
+      # does counting stores opened by today (Los Angeles opens 2026-09-13, after the data
+      # ends). Filtering locations on opened_at up to 2026-08-31 gives 5 without checking
+      # sales: provenance catches it.
+      - id: active_stores
+        title: Number of active stores
+        prompt: How many active stores do we have?
+        tags: [holdout]
+        expected_answer: "5"
+        provenance:
+          expected_sources: [orders]
+
+      # Gold: gold/16_customers_with_orders.sql on the dbt marts, 2026-10-20. Every customer
+      # has ordered, so counting customers also gives 2586, without checking orders:
+      # provenance catches it. On the marts, customers.count_lifetime_orders > 0 also
+      # checks orders but fails provenance; accepted as rare.
+      - id: customers_with_orders
+        title: Number of customers who have placed an order
+        prompt: How many customers have placed an order?
+        expected_answer: "2586"
+        provenance:
+          expected_sources: [orders]
+
+      # Gold: gold/17_distinct_products_sold.sql on the dbt marts, 2026-10-20. Every product
+      # has sold, so counting products also gives 10, without checking sales: provenance
+      # catches it.
+      - id: distinct_products_sold
+        title: Number of different products sold
+        prompt: How many different products have we sold?
+        expected_answer: "10"
+        provenance:
+          expected_sources: [order_items]
+
+      # Gold: gold/19_pct_beverage_only_orders.sql on the dbt marts, 2026-10-20. Beverage
+      # only = drinks and no food: 502268 of 664401 orders = 75.60%. Leaving out the 5030
+      # empty orders gives 76.17%; the tolerance accepts both. Orders with any drink:
+      # 97.30%, wrong.
+      - id: pct_beverage_only_orders
+        title: Share of beverage-only orders
+        prompt: What's the percentage of beverage only orders from the total orders?
+        expected_answer: "75.6"
+        grading:
+          tolerance: 0.6
+        provenance:
+          expected_sources: [orders]
+
+      # Gold: gold/26_avg_order_value_weekday_vs_weekend.sql on the dbt marts, 2026-10-20.
+      # Pre-tax, all time, all orders (the empty orders have subtotal 0 and count): weekday
+      # 8.93, weekend 23.41, difference 14.48. Without the empty orders (e.g. averaging
+      # order_items_subtotal, NULL on them): 14.84. With tax: 15.27. The prompt asks for the
+      # absolute difference so the sign can't decide the grade.
+      - id: avg_order_value_weekday_vs_weekend
+        title: Average order value difference, weekday vs weekend
+        prompt: What's the absolute difference in average order price between a weekday (Mon-Fri) and the weekend (Sat-Sun)?
+        expected_answer: "14.48"
+        grading:
+          tolerance: 0.05
+        provenance:
+          expected_sources: [orders]
+
+      # Gold: gold/27_tax_collected_last_year.sql on the dbt marts, 2026-10-20. Last year =
+      # 2025: sum of tax_paid. Recomputing as subtotal x tax_rate gives 148997.19 (tax is
+      # floored per order, 0.26% too high); the last 12 months from today give 204983.18.
+      # tolerance_percent 0.1 accepts rounding like 148.6K but not the recomputed figure.
+      - id: tax_collected_last_year
+        title: Tax collected last year
+        prompt: How much tax did we collect last year?
+        expected_answer: "148616.29"
+        grading:
+          tolerance_percent: 0.1
+        provenance:
+          expected_sources: [orders]
+
+      # Gold: gold/30_highest_revenue_month.sql on the dbt marts, 2026-10-20. Complete years
+      # are 2024 and 2025: December is the top month in both (171915.00, 354356.00),
+      # November second. Pre-tax.
+      - id: highest_revenue_month
+        title: Month with the highest revenue in complete years
+        prompt: Which month of the year has the highest revenue? Is it the same every year? Only consider complete years.
+        expected_answer: >
+          December, and yes, it's the same in both complete years, 2024 and 2025
+          (December revenue before tax: 171915.00 in 2024, 354356.00 in 2025). Amounts
+          aren't required, but if the answer gives any, they must match within 1%; an
+          amount outside that range makes the answer wrong.
+        grading:
+          method: llm_judge
+        provenance:
+          expected_sources: [orders]
+
+      # Gold: gold/33_perishable_supplies.sql on the dbt marts, 2026-10-20. supplies has one
+      # row per supply and product (65 rows, 29 supplies); 22 distinct supplies are
+      # perishable. Counting rows gives 30. Written by Claude at Jose's request.
+      - id: perishable_supplies
+        title: Number of perishable supplies
+        prompt: How many of our supplies are perishable?
+        tags: [holdout]
+        expected_answer: "22"
+        provenance:
+          expected_sources: [supplies]
+
+      # Gold: gold/35_how_are_we_doing_this_month.sql on the dbt marts, 2026-10-20. Very
+      # vague on purpose: the agent should ask what to measure, or state what it measured.
+      # This month = August 2026, compared with July: revenue 322115.00 vs 310921.00
+      # (+3.6%), orders 30319 vs 31100 (-2.5%), customers 2073 vs 2054, average order
+      # 10.62 vs 10.00. No expected_sources: an agent that asks first may run no SQL.
+      # Written by Claude at Jose's request.
+      - id: how_are_we_doing_this_month
+        title: How we are doing this month
+        prompt: How are we doing this month?
+        tags: [time, ambiguous]
+        expected_answer: >
+          Correct if the answer either (a) asks the user what they want to measure or
+          compare, or (b) states that it looks at August 2026 (the last month of data)
+          and reports figures that match: revenue before tax 322115.00 (up about 3.6%
+          from 310921.00 in July), 30319 orders (down about 2.5% from 31100), 2073
+          customers, average order 10.62. Any figure given must match within 1%; the
+          answer doesn't need all of them.
+        grading:
+          method: llm_judge

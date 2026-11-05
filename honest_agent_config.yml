@@ -1,0 +1,41 @@
+# honest-agent settings: one target per agent you evaluate, like the targets in a dbt profile.
+# Secrets stay in .env, and so do account URLs: {{ env_var('NAME') }} reads them from there.
+# Every setting: https://thehonestagent.dev/docs/reference/config/
+
+default_target: motherduck
+
+targets:
+  motherduck:
+    mcp_url: "{{ env_var('MOTHERDUCK_MCP_URL') }}"
+    bearer_token_env: MOTHERDUCK_MCP_TOKEN   # names the variable in .env, never the token
+    max_tool_steps: 10   # it explores databases and tables before it queries
+    evals_dir: evals/marts   # evals/raw for R0 and R1: same questions, raw tables
+
+  # R0 on MotherDuck's hosted server: database climb holds the raw tables only, no comments
+  # (create or replace database climb from 'warehouse/jaffle_raw.duckdb'). One rung at a time
+  # lives in climb, so the agent can't see another rung's tables or descriptions.
+  r0:
+    mcp_url: "{{ env_var('MOTHERDUCK_MCP_URL') }}"
+    bearer_token_env: MOTHERDUCK_MCP_TOKEN
+    default_database: climb
+    default_schema: raw
+    max_tool_steps: 15   # the hosted server's 45 tools mean more exploring: 10 cut off 4 of 25 evals
+    evals_dir: evals/raw
+
+  # R0 on this machine: MotherDuck's local MCP server over the raw tables only
+  # (warehouse/jaffle_raw.duckdb), read-only. For status runs before the MotherDuck setup.
+  r0_local:
+    mcp_command: uvx mcp-server-motherduck@1.1.0 --db-path warehouse/jaffle_raw.duckdb
+    default_database: jaffle_raw
+    default_schema: raw
+    max_tool_steps: 10
+    evals_dir: evals/raw
+
+  # R1 on this machine: the same raw tables, plus the descriptions from dbt's __sources.yml
+  # as comments (warehouse/jaffle_r1.duckdb, made by scripts/apply_comments.py).
+  r1_local:
+    mcp_command: uvx mcp-server-motherduck@1.1.0 --db-path warehouse/jaffle_r1.duckdb
+    default_database: jaffle_r1
+    default_schema: raw
+    max_tool_steps: 10
+    evals_dir: evals/raw
