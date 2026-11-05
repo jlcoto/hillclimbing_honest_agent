@@ -2,7 +2,9 @@
 
 A hillclimbing experiment on a data agent, rung by rung, using
 [The Honest Agent](https://github.com/jlcoto/the_honest_agent) and the Jaffle Shop data.
-It's the companion repo of the hillclimbing series on The Data Lead.
+This repo is the accompanying material of the hillclimbing series on The Data Lead. Start
+with [part 1](https://blog.thegroundlayer.io/p/hillclimbing-evals-data-agents), which
+introduces hillclimbing.
 
 This branch is **rung 0 (R0)**: the agent queries the raw tables, with no documentation.
 The baseline on honest-agent 0.4.0 passed 11, 11 and 12 of 25 evals.
