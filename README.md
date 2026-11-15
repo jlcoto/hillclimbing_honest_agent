@@ -8,6 +8,37 @@ introduces hillclimbing.
 
 This branch is **rung 0 (R0)**: the agent queries the raw tables, with no documentation.
 The baseline on honest-agent 0.4.0 passed 11, 11 and 12 of 25 evals.
+[Part 2](https://blog.thegroundlayer.io/p/hillclimbing-with-evals-in-practice) of the series
+walks through it.
+
+## The branches
+
+Each set of changes in the series has its own branch. The branches build on each other:
+`rung-2` holds everything in `rung-1`, plus the marts.
+
+| Branch | Change | Evals passed in 3 runs |
+|---|---|---|
+| `rung-0` | The raw tables, no documentation | 11, 11 and 12 of 25 |
+| `rung-1` | Descriptions of the raw tables, as database comments | 13, 14 and 14 of 25 |
+| `rung-2` | dbt's marts and their descriptions, instead of the raw tables | 15, 14 and 17 of 25 |
+| `rung-3` | The marts without `customers.customer_type`, plus a guide | 25, 25 and 25 of 25 |
+
+To reproduce a change, check out its branch and follow its README. Each README has the
+build steps for that change only.
+
+```bash
+git checkout rung-2
+```
+
+To see what a change added, compare its branch with the one before:
+
+```bash
+git diff rung-1 rung-2
+```
+
+Every branch builds the same `climb` database on MotherDuck, so only one change is there
+at a time. The guide from `rung-3` stays in your MotherDuck account until you delete it:
+delete it before you run another branch (see the README of `rung-3`).
 
 ## What's here
 
