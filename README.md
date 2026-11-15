@@ -9,6 +9,8 @@ introduces hillclimbing.
 This branch is **rung 3 (R3)**: the marts of R2 without `customers.customer_type`, plus a
 guide with our definitions, loaded as a private MotherDuck guide. On honest-agent 0.4.0 it
 passed 25, 25 and 25 of 25 evals.
+[Part 3](https://blog.thegroundlayer.io/p/hillclimbing-evals-improve-data-agent) of the series
+walks through it.
 
 ## The branches
 
