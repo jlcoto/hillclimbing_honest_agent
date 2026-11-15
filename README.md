@@ -8,6 +8,8 @@ introduces hillclimbing.
 
 This branch is **rung 0 (R0)**: the agent queries the raw tables, with no documentation.
 The baseline on honest-agent 0.4.0 passed 11, 11 and 12 of 25 evals.
+[Part 2](https://blog.thegroundlayer.io/p/hillclimbing-with-evals-in-practice) of the series
+walks through it.
 
 ## The branches
 
