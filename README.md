@@ -12,8 +12,8 @@ every table and column as database comments. On honest-agent 0.4.0 it passed 13,
 
 ## The branches
 
-Each part of the series makes one change, and each change has its own branch. The
-branches build on each other: `rung-2` holds everything in `rung-1`, plus the marts.
+Each set of changes in the series has its own branch. The branches build on each other:
+`rung-2` holds everything in `rung-1`, plus the marts.
 
 | Branch | Change | Evals passed in 3 runs |
 |---|---|---|
