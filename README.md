@@ -9,6 +9,8 @@ introduces hillclimbing.
 This branch is **rung 2 (R2)**: the agent queries dbt's marts instead of the raw tables,
 with the descriptions from the marts' yml as database comments. On honest-agent 0.4.0 it
 passed 15, 14 and 17 of 25 evals.
+[Part 3](https://blog.thegroundlayer.io/p/hillclimbing-evals-improve-data-agent) of the series
+walks through it.
 
 ## The branches
 
