@@ -16,6 +16,9 @@ walks through it.
 
 Each set of changes in the series has its own branch. The branches build on each other:
 `rung-2` holds everything in `rung-1`, plus the marts.
+[Part 2](https://blog.thegroundlayer.io/p/hillclimbing-with-evals-in-practice) covers `rung-0`, and
+[part 3](https://blog.thegroundlayer.io/p/hillclimbing-evals-improve-data-agent) covers
+`rung-1` to `rung-3`.
 
 | Branch | Change | Evals passed in 3 runs |
 |---|---|---|
