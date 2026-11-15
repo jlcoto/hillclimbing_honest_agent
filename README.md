@@ -9,6 +9,8 @@ introduces hillclimbing.
 This branch is **rung 1 (R1)**: the same raw tables as R0, now with a description of
 every table and column as database comments. On honest-agent 0.4.0 it passed 13, 14 and
 14 of 25 evals.
+[Part 3](https://blog.thegroundlayer.io/p/hillclimbing-evals-improve-data-agent) of the series
+walks through it.
 
 ## The branches
 
