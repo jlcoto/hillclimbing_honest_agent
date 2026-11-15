@@ -11,8 +11,8 @@ The baseline on honest-agent 0.4.0 passed 11, 11 and 12 of 25 evals.
 
 ## The branches
 
-Each part of the series makes one change, and each change has its own branch. The
-branches build on each other: `rung-2` holds everything in `rung-1`, plus the marts.
+Each set of changes in the series has its own branch. The branches build on each other:
+`rung-2` holds everything in `rung-1`, plus the marts.
 
 | Branch | Change | Evals passed in 3 runs |
 |---|---|---|
