@@ -6,9 +6,9 @@ This repo is the accompanying material of the hillclimbing series on The Data Le
 with [part 1](https://blog.thegroundlayer.io/p/hillclimbing-evals-data-agents), which
 introduces hillclimbing.
 
-This branch is **rung 1 (R1)**: the same raw tables as R0, now with a description of
-every table and column as database comments. On honest-agent 0.4.0 it passed 13, 14 and
-14 of 25 evals.
+This branch is **rung 2 (R2)**: the agent queries dbt's marts instead of the raw tables,
+with the descriptions from the marts' yml as database comments. On honest-agent 0.4.0 it
+passed 15, 14 and 17 of 25 evals.
 
 ## The branches
 
@@ -47,9 +47,9 @@ delete it before you run another branch (see the README of `rung-3`).
 | `evals/raw/`, `evals/marts/` | The 35 evals: same questions and answers, for each layer |
 | `dbt/r1_sources.yml` | The descriptions of the raw tables, written for R1 |
 | `gold/` | The SQL behind each expected answer |
-| `scripts/` | Loading the data, the holdout split, and checks |
+| `scripts/` | Loading the data, building each change, the holdout split, and checks |
 | `docs/methodology_notes.md` | How the data was made, and its limits |
-| `honest_agent_config.yml` | One target per setup; `r1` is this branch |
+| `honest_agent_config.yml` | One target per setup; `r2` is this branch |
 
 ## Follow along
 
@@ -63,25 +63,25 @@ Anthropic API key. Three runs of the 25 evals cost us about $0.50.
 uv sync
 ```
 
-**2. Build the raw tables** in a local DuckDB file:
+**2. Build the marts** in local DuckDB files. This fetches dbt's jaffle-shop project, runs
+it on the raw tables and keeps only the marts, with the descriptions from their yml as
+comments:
 
 ```bash
 mkdir -p warehouse
-duckdb warehouse/jaffle_raw.duckdb -f scripts/load_local.sql
-```
-
-**Add the descriptions** as comments, in a copy of that file:
-
-```bash
-cp warehouse/jaffle_raw.duckdb warehouse/jaffle_r1.duckdb
-uv run python scripts/apply_comments.py warehouse/jaffle_r1.duckdb
+sh scripts/fetch_jaffle_shop.sh
+duckdb warehouse/climb.duckdb -f scripts/load_local.sql
+(cd dbt/jaffle-shop && uv run --project ../.. dbt deps --profiles-dir .. && uv run --project ../.. dbt build --profiles-dir ..)
+duckdb warehouse/jaffle_marts.duckdb -f scripts/build_marts_file.sql
+duckdb warehouse/jaffle_r2.duckdb -f scripts/build_r2.sql
+uv run python scripts/marts_comments.py | duckdb warehouse/jaffle_r2.duckdb
 ```
 
 **3. Copy them to MotherDuck** as a database named `climb`. This needs a token that can
 write, in `MOTHERDUCK_TOKEN`:
 
 ```bash
-duckdb -c "attach 'md:'; create or replace database climb from 'warehouse/jaffle_r1.duckdb';"
+duckdb -c "attach 'md:'; create or replace database climb from 'warehouse/jaffle_r2.duckdb';"
 ```
 
 **4. Create a `.env` file.** The agent only reads, so use a read-only token here. The
@@ -97,7 +97,7 @@ MOTHERDUCK_MCP_TOKEN=...
 **5. Run the evals** (each run is paid) and view the report:
 
 ```bash
-uv run honest-agent run --target r1 --exclude tag:holdout
+uv run honest-agent run --target r2 --exclude tag:holdout
 uv run honest-agent report
 uv run honest-agent serve --out honest_agent_report
 ```
