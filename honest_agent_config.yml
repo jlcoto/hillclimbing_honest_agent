@@ -22,6 +22,15 @@ targets:
     max_tool_steps: 15   # the hosted server's 45 tools mean more exploring: 10 cut off 4 of 25 evals
     evals_dir: evals/raw
 
+  # R1 on MotherDuck's hosted server: the same raw tables in climb, plus the descriptions as comments.
+  r1:
+    mcp_url: "{{ env_var('MOTHERDUCK_MCP_URL') }}"
+    bearer_token_env: MOTHERDUCK_MCP_TOKEN
+    default_database: climb
+    default_schema: raw
+    max_tool_steps: 15
+    evals_dir: evals/raw
+
   # R0 on this machine: MotherDuck's local MCP server over the raw tables only
   # (warehouse/jaffle_raw.duckdb), read-only. For status runs before the MotherDuck setup.
   r0_local:

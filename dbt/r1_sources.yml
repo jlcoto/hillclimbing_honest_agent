@@ -1,0 +1,81 @@
+version: 2
+
+sources:
+  - name: ecom
+    schema: raw
+    description: E-commerce data for the Jaffle Shop
+    tables:
+      - name: raw_customers
+        description: One record per person who has purchased one or more items
+        columns:
+          - name: id
+            description: "Unique identifier for the customer"
+          - name: name
+            description: "First and last name of the customer"
+      - name: raw_orders
+        description: One record per order (consisting of one or more order items)
+        config:
+          loaded_at_field: ordered_at
+        columns:
+          - name: id
+            description: "Unique identifier for the order"
+          - name: customer
+            description: "ID of the customer who placed the order"
+          - name: ordered_at
+            description: "Timestamp of when the order was placed"
+          - name: store_id
+            description: "ID of the store where the order was placed"
+          - name: subtotal
+            description: "Subtotal of the order in cents"
+          - name: tax_paid
+            description: "Amount of tax paid for the order in cents"
+          - name: order_total
+            description: "Total amount of the order in cents"
+      - name: raw_items
+        description: Items included in an order
+        columns:
+          - name: id
+            description: "Unique identifier for the order item"
+          - name: order_id
+            description: "ID of the order to which the item belongs"
+          - name: sku
+            description: "Stock Keeping Unit for the item"
+      - name: raw_stores
+        description: One record per store
+        config:
+          loaded_at_field: opened_at
+        columns:
+          - name: id
+            description: "Unique identifier for the store"
+          - name: name
+            description: "Name of the store"
+          - name: opened_at
+            description: "Date when the store was opened"
+          - name: tax_rate
+            description: "Tax rate applicable to the store expressed as a decimal (e.g., 0.08 for 8%)"
+      - name: raw_products
+        description: One record per SKU for items sold in stores
+        columns:
+          - name: sku
+            description: "Stock Keeping Unit for the product"
+          - name: name
+            description: "Name of the product"
+          - name: type
+            description: "Type of the product (e.g., beverage, jaffle (food))"
+          - name: price
+            description: "Price of the product in cents"
+          - name: description
+            description: "Description of the product"
+      - name: raw_supplies
+        description: One record per supply per SKU of items sold in stores
+        columns:
+          - name: id
+            description: "Unique identifier for the supply"
+          - name: name
+            description: "Name of the supply"
+          - name: cost
+            description: "Cost of the supply in cents"
+          - name: perishable
+            description: "Whether the supply is perishable (true/false)"
+          - name: sku
+            description: "Stock Keeping Unit for the product"

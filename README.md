@@ -6,8 +6,9 @@ This repo is the accompanying material of the hillclimbing series on The Data Le
 with [part 1](https://blog.thegroundlayer.io/p/hillclimbing-evals-data-agents), which
 introduces hillclimbing.
 
-This branch is **rung 0 (R0)**: the agent queries the raw tables, with no documentation.
-The baseline on honest-agent 0.4.0 passed 11, 11 and 12 of 25 evals.
+This branch is **rung 1 (R1)**: the same raw tables as R0, now with a description of
+every table and column as database comments. On honest-agent 0.4.0 it passed 13, 14 and
+14 of 25 evals.
 
 ## The branches
 
@@ -44,10 +45,11 @@ delete it before you run another branch (see the README of `rung-3`).
 |---|---|
 | `data/` | The raw data, generated once with jafgen, and its checksums |
 | `evals/raw/`, `evals/marts/` | The 35 evals: same questions and answers, for each layer |
+| `dbt/r1_sources.yml` | The descriptions of the raw tables, written for R1 |
 | `gold/` | The SQL behind each expected answer |
 | `scripts/` | Loading the data, the holdout split, and checks |
 | `docs/methodology_notes.md` | How the data was made, and its limits |
-| `honest_agent_config.yml` | One target per setup; `r0` is the baseline |
+| `honest_agent_config.yml` | One target per setup; `r1` is this branch |
 
 ## Follow along
 
@@ -68,11 +70,18 @@ mkdir -p warehouse
 duckdb warehouse/jaffle_raw.duckdb -f scripts/load_local.sql
 ```
 
+**Add the descriptions** as comments, in a copy of that file:
+
+```bash
+cp warehouse/jaffle_raw.duckdb warehouse/jaffle_r1.duckdb
+uv run python scripts/apply_comments.py warehouse/jaffle_r1.duckdb
+```
+
 **3. Copy them to MotherDuck** as a database named `climb`. This needs a token that can
 write, in `MOTHERDUCK_TOKEN`:
 
 ```bash
-duckdb -c "attach 'md:'; create or replace database climb from 'warehouse/jaffle_raw.duckdb';"
+duckdb -c "attach 'md:'; create or replace database climb from 'warehouse/jaffle_r1.duckdb';"
 ```
 
 **4. Create a `.env` file.** The agent only reads, so use a read-only token here. The
@@ -88,7 +97,7 @@ MOTHERDUCK_MCP_TOKEN=...
 **5. Run the evals** (each run is paid) and view the report:
 
 ```bash
-uv run honest-agent run --target r0 --exclude tag:holdout
+uv run honest-agent run --target r1 --exclude tag:holdout
 uv run honest-agent report
 uv run honest-agent serve --out honest_agent_report
 ```

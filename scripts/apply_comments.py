@@ -1,4 +1,4 @@
-"""Writes the descriptions in dbt's __sources.yml as DuckDB comments on the raw tables, so
+"""Writes the descriptions in dbt/r1_sources.yml as DuckDB comments on the raw tables, so
 the agent sees them (R1). dbt's persist_docs only covers models, not sources, and the agent
 reads database comments, never the yml. Run from the repo root:
 
@@ -19,7 +19,8 @@ from pathlib import Path
 import duckdb
 import yaml
 
-SOURCES = Path("dbt/jaffle-shop/models/staging/__sources.yml")
+# jaffle-shop's models/staging/__sources.yml, with a description for every column (R1).
+SOURCES = Path("dbt/r1_sources.yml")
 
 
 def quote(text: str | None) -> str:
