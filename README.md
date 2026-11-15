@@ -6,9 +6,9 @@ This repo is the accompanying material of the hillclimbing series on The Data Le
 with [part 1](https://blog.thegroundlayer.io/p/hillclimbing-evals-data-agents), which
 introduces hillclimbing.
 
-This branch is **rung 2 (R2)**: the agent queries dbt's marts instead of the raw tables,
-with the descriptions from the marts' yml as database comments. On honest-agent 0.4.0 it
-passed 15, 14 and 17 of 25 evals.
+This branch is **rung 3 (R3)**: the marts of R2 without `customers.customer_type`, plus a
+guide with our definitions, loaded as a private MotherDuck guide. On honest-agent 0.4.0 it
+passed 25, 25 and 25 of 25 evals.
 
 ## The branches
 
@@ -46,10 +46,11 @@ delete it before you run another branch (see the README of `rung-3`).
 | `data/` | The raw data, generated once with jafgen, and its checksums |
 | `evals/raw/`, `evals/marts/` | The 35 evals: same questions and answers, for each layer |
 | `dbt/r1_sources.yml` | The descriptions of the raw tables, written for R1 |
+| `guides/jaffle_shop.md` | The guide the agent reads in R3 |
 | `gold/` | The SQL behind each expected answer |
 | `scripts/` | Loading the data, building each change, the holdout split, and checks |
 | `docs/methodology_notes.md` | How the data was made, and its limits |
-| `honest_agent_config.yml` | One target per setup; `r2` is this branch |
+| `honest_agent_config.yml` | One target per setup; `r3` is this branch |
 
 ## Follow along
 
@@ -65,7 +66,7 @@ uv sync
 
 **2. Build the marts** in local DuckDB files. This fetches dbt's jaffle-shop project, runs
 it on the raw tables and keeps only the marts, with the descriptions from their yml as
-comments:
+comments. The last two lines drop `customers.customer_type`:
 
 ```bash
 mkdir -p warehouse
@@ -75,13 +76,15 @@ duckdb warehouse/climb.duckdb -f scripts/load_local.sql
 duckdb warehouse/jaffle_marts.duckdb -f scripts/build_marts_file.sql
 duckdb warehouse/jaffle_r2.duckdb -f scripts/build_r2.sql
 uv run python scripts/marts_comments.py | duckdb warehouse/jaffle_r2.duckdb
+cp warehouse/jaffle_r2.duckdb warehouse/jaffle_r3.duckdb
+duckdb warehouse/jaffle_r3.duckdb -f scripts/build_r3.sql
 ```
 
 **3. Copy them to MotherDuck** as a database named `climb`. This needs a token that can
 write, in `MOTHERDUCK_TOKEN`:
 
 ```bash
-duckdb -c "attach 'md:'; create or replace database climb from 'warehouse/jaffle_r2.duckdb';"
+duckdb -c "attach 'md:'; create or replace database climb from 'warehouse/jaffle_r3.duckdb';"
 ```
 
 **4. Create a `.env` file.** The agent only reads, so use a read-only token here. The
@@ -94,10 +97,20 @@ MOTHERDUCK_MCP_URL=https://api.motherduck.com/mcp
 MOTHERDUCK_MCP_TOKEN=...
 ```
 
-**5. Run the evals** (each run is paid) and view the report:
+**5. Create the guide** in your MotherDuck account, from `guides/jaffle_shop.md`.
+MotherDuck creates guides only through an agent or an MCP client, so the script calls the
+hosted MCP server with the token in `.env`. That token is enough to write guides, so the
+agent could change the guide too: check `tools_used` in the results for guide tools after
+each run.
 
 ```bash
-uv run honest-agent run --target r2 --exclude tag:holdout
+uv run --env-file .env python scripts/guide.py create
+```
+
+**6. Run the evals** (each run is paid) and view the report:
+
+```bash
+uv run honest-agent run --target r3 --exclude tag:holdout
 uv run honest-agent report
 uv run honest-agent serve --out honest_agent_report
 ```
@@ -106,6 +119,15 @@ Keep `--exclude tag:holdout` on every run. The 10 holdout evals are only for the
 the climb, and looking at them earlier defeats their purpose.
 
 Agents and judges aren't deterministic, so your numbers will differ a bit from ours.
+
+**Before you run another branch, delete the guide.** It isn't part of `climb`, so
+rebuilding the database leaves it in place. Its uuid is in the output of `create` and
+`list`:
+
+```bash
+uv run --env-file .env python scripts/guide.py list
+uv run --env-file .env python scripts/guide.py delete <uuid>
+```
 
 ## The data
 

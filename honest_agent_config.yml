@@ -41,6 +41,17 @@ targets:
     max_tool_steps: 15
     evals_dir: evals/marts
 
+  # R3 on MotherDuck's hosted server: climb holds the marts without customers.customer_type
+  # (warehouse/jaffle_r3.duckdb), plus the guide in guides/jaffle_shop.md, loaded as a
+  # private MotherDuck guide.
+  r3:
+    mcp_url: "{{ env_var('MOTHERDUCK_MCP_URL') }}"
+    bearer_token_env: MOTHERDUCK_MCP_TOKEN
+    default_database: climb
+    default_schema: marts
+    max_tool_steps: 15
+    evals_dir: evals/marts
+
   # R0 on this machine: MotherDuck's local MCP server over the raw tables only
   # (warehouse/jaffle_raw.duckdb), read-only. For status runs before the MotherDuck setup.
   r0_local:
